@@ -4,7 +4,17 @@ public class api_stubs{
 
 
 //Seni
+//Activities Listing
+public ActivityListingService{ 
+    List<Activity> listPopular(String destination, LocalDate date) {
+        //Returns popular activities for a destination and date
+    }
 
+    List<Activity> filterActivities(String destination, LocalDate date, ActivityFilter filter) {
+        //Applies user defined filters such as budget or category
+    }
+
+}
 
 //Daniela - Reviews and Community
 //Reviews
