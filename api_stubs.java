@@ -47,7 +47,11 @@ public BusinessSubmissionService{
     }
 }
 
-
+public SubmissionStatusService{
+    SubmissionStatus getStatus(String submissionId){
+        //Status update (verified or rejected)
+    }
+}
 
 //Chris
 
