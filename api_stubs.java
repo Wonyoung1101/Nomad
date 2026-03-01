@@ -22,6 +22,16 @@ public ReviewService{
     }
 }
 
+public ModerationService{
+    ModerationResult checkLanguage(String text){
+        //Looks for inapproriate language
+    }
+
+    boolean isSpam(ReviewForm form){
+        //identify spam or bot-generated reviews
+    }
+}
+
 
 
 //Chris
