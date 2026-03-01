@@ -32,6 +32,21 @@ public ModerationService{
     }
 }
 
+//Community
+public BusinessSubmissionService{
+    SubmissionReceipt submitBusiness(String localMemberId, BusinessForm form) {
+        //user submit business in the business form
+    }
+
+    List<Business> listLocalBusinesses(String destination) {
+        //list display of verified businesses
+    }
+
+    void requestBusinessUpdate(String localMemberId, String businessId, BusinessUpdateForm form) {
+        //update form for business that already have a business
+    }
+}
+
 
 
 //Chris
