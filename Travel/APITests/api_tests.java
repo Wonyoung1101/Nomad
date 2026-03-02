@@ -70,6 +70,8 @@ public class api_tests {
             System.out.println("No businesses found for Location.");
         }
 
+        BusinessUpdateForm updateForm = new BusinessUpdateForm("New Cafe");
+        submissionService.requestBusinessUpdate("local", receipt.getSubmissionId(), updateForm);
         System.out.println("---Community Tests End---\n");
 
         //Reporting - Chris
