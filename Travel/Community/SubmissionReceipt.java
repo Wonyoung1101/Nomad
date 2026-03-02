@@ -10,4 +10,9 @@ public class SubmissionReceipt {
     public String getSubmissionId(){
         return submissionId;
     }
+
+    @Override
+    public String toString() {
+        return "SubmissionReceipt{submissionId='" + submissionId + "'}";
+    }
 }

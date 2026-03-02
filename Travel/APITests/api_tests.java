@@ -41,6 +41,14 @@ public class api_tests {
         } else {
             System.out.println("No reviews found for target1.");
         }
+
+        ReviewForm spamForm = new ReviewForm("Hello");
+        Review spamReview = reviewService.submitReview("user2", "business", "target1", spamForm);
+        if(spamReview != null){
+            System.out.println("Spam review submitted successfully: " + spamReview.getReviewText());
+        } else {
+            System.out.println("Spam review submission failed.");
+        }
         System.out.println("---Review Tests End---\n");
 
         //Community - Daniela
@@ -50,7 +58,7 @@ public class api_tests {
         BusinessForm businessForm = new BusinessForm("Cafe", "location");
         SubmissionReceipt receipt = submissionService.submitBusiness("local", businessForm);
         if(receipt != null){
-            System.out.println("Business submitted successfully: " + receipt.toString());
+            System.out.println("Business submitted successfully: " + receipt.getSubmissionId());
         } else {
             System.out.println("Business submission failed.");
         }
