@@ -7,7 +7,7 @@ public class ReviewForm {
         this.reviewText = reviewText;
     }
 
-    public String getReviewForm(){
+    public String getReviewText(){
         return reviewText;
     }
 }
