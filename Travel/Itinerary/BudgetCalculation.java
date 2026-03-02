@@ -4,15 +4,13 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 public class BudgetCalculation {
-    private final ItineraryRepository repo;
+    private final Map<String, Itinerary> repo = new HashMap<>(); //maps userId to their itinerary
 
-    public BudgetCalculation(ItineraryRepository repo) {
-        this.repo = repo;
-    }
+    public BudgetCalculation() {};
     
     public Optional<BigDecimal> calculateRemainingBudget(String userId) {
         //calculates the remaining budget
-        return repo.findByUserId(userId).map(itinerary -> itinerary.getRemainingBudget());
+        return repo.get(userId) != null ? Optional.of(repo.get(userId).getRemainingBudget()) : Optional.empty();
     }
 
     public void handleItemchange(String userId, String itineraryItemId) {

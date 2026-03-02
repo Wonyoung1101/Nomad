@@ -5,52 +5,47 @@ import java.util.List;
 import java.util.Optional;
 
 public class ItineraryService {
-    private final ItineraryRepository repository;
+    private final Map<String, Itinerary> repo = new HashMap<>(); //maps userId to their itinerary
     private final BudgetCalculation budgetCalculation;
 
-    public ItineraryService(ItineraryRepository repository, BudgetCalculation budgetCalculation) {
-        this.repository = repository;
+    public ItineraryService(BudgetCalculation budgetCalculation) {
         this.budgetCalculation = budgetCalculation;
     }
 
     public Optional<Itinerary> getItinerary(String userId) {
         // retrieves the current itinerary for a user
-        return repository.findByUserId(userId);
+        return Optional.ofNullable(repo.get(userId));
     }
 
     public void addItem(String userId, ItineraryItem item) {
-        repository.findByUserId(userId).ifPresentOrElse(itinerary -> {
-            itinerary.addItem(item);
-            repository.save(itinerary);
-            budgetCalculation.handleItemchange(userId, item.getId());
-        }, () -> {
-            repository.createItineraryWithItem(userId, item);
-            budgetCalculation.handleItemchange(userId, item.getId());
-        });
+        itinerary it = repo.computeIfAbsent(userId, u -> new Itinerary());
+        it.addItem(item);
+        budgetCalculation.handleItemchange(userId, item.getId());
         
 
     }
 
     public void removeItem(String userId, String itineraryItemId) {
         // removes an item from the itinerary
-        repository.findByUserId(userId).ifPresent(itinerary -> {
-            itinerary.removeItem(itineraryItemId);
-            repository.save(itinerary);
+        Itinerary it = repo.get(userId);
+        if(it != null){
+            it.removeItem(itineraryItemId);
             budgetCalculation.handleItemchange(userId, itineraryItemId);
-        });
+        }
     }
 
     public void updateSchedule(String userId, String itineraryItemId, LocalDateTime newTime) {
         // updates the schedule of an itinerary item
-        repository.findByUserId(userId).ifPresent(itinerary -> {
-            itinerary.updateItemSchedule(itineraryItemId, newTime);
-            repository.save(itinerary);
+        Itinerary it = repo.get(userId);
+        if(it != null){ 
+            it.updateItemSchedule(itineraryItemId, newTime);
             budgetCalculation.handleItemchange(userId, itineraryItemId);
-        });
+        }
     }
 
     public List<ItineraryItem> listItems(String userId) {
-        return repository.listItems(userId);
+        Itinerary it = repo.get(userId);
+        return it != null ? it.getItems() : List.of();
     }
 }
 
