@@ -1,15 +1,6 @@
-// here we can begin to stub out the API calls that we will be making to the backend
-
-//Wonyoung
-
-//Seni
-
-//Daniela
-
-//Chris
 import Travel.Reporting.reporting_api;
 
-public class api_stubs {
+public class api_tests {
     public static void main(String[] args) {
         // create two reports, one user and one business
         String id1 = reporting_api.createReport(
