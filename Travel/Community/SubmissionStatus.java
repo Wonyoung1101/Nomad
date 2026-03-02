@@ -1,5 +1,7 @@
 package Travel.Community;
 
-public class SubmissionStatus {
-    
+public enum SubmissionStatus {
+    PENDING,
+    APPROVED,
+    REJECTED
 }
