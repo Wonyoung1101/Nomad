@@ -18,6 +18,6 @@ public class BudgetCalculation {
         Optional<BigDecimal> remaining = calculateRemainingBudget(userId);
         remaining.ifPresent(b ->{
             //persist budget snapshot, send notifications, update cache, etc.
-        })
+        });
     }
 }

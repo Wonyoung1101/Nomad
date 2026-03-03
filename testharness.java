@@ -6,7 +6,7 @@ import Travel.Reporting.*;
 
 public class testharness {
     public static void main(String[] args) {
-        //Activities - Seni
+        //Activities    
         System.out.println("---Activity Tests:---");
         ActivityListingService listingService = new ActivityListingService();
         List<Activity> activities = listingService.listPopular("Mountain", LocalDate.now());
