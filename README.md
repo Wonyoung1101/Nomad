@@ -1,5 +1,3 @@
 # IST412Travel_application
 
-## This is for a class project
-# This project is was worked on by 4 people 
-# test for pushing/pulling
+In order to run this applicaiton, go to the file marked "testharness", "api_stubs.java", and "testharness.java".
