@@ -1,4 +1,5 @@
 package Travel.Activities;
+package Travel.Itinerary;
 
 import java.time.LocalDateTime;
 import java.util.*;
