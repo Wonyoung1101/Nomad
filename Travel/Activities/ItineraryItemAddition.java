@@ -2,13 +2,13 @@ package Travel.Activities;
 
 import java.time.LocalDateTime;
 
-public class ItineraryItem {
+public class ItineraryItemAddition {
     private String userId;
     private String activityId;
     private LocalDateTime preferredTime;
     boolean autoSchedule;
 
-    public ItineraryItem(String userId, String activityId, LocalDateTime preferredTime, boolean autoSchedule) {
+    public ItineraryItemAddition(String userId, String activityId, LocalDateTime preferredTime, boolean autoSchedule) {
         this.userId = userId;
         this.activityId = activityId;
         this.preferredTime = preferredTime;

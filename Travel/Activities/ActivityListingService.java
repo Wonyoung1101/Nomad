@@ -10,9 +10,9 @@ public class ActivityListingService {
     private final List<Activity> activitiesDatabase = new ArrayList<>(); // This will act as our in-memory database for activities
 
     public ActivityListingService() {
-        activitiesDatabase.add(new Activity("hike01", "Mountain Hike", "A scenic 5 mile trail", "Mountain", 15.00));
-        activitiesDatabase.add(new Activity("museum01", "Art Museum", "A world class art museum with exhibits from around the world", "NYC", 20.00));
-        activitiesDatabase.add(new Activity("foodtour01", "Food Tour", "A guided tour of the best local food spots in the city", "Chicago", 25.00));
+        activitiesDatabase.add(new Activity("hike01", "Mountain Hike", "A scenic 5 mile trail", "Mountain", 15.00, "outdoor"));
+        activitiesDatabase.add(new Activity("museum01", "Art Museum", "A world class art museum with exhibits from around the world", "NYC", 20.00, "indoor"));
+        activitiesDatabase.add(new Activity("foodtour01", "Food Tour", "A guided tour of the best local food spots in the city", "Chicago", 25.00, "indoor"));
     }
     
     public List<Activity> listPopular(String destination, LocalDate date) {

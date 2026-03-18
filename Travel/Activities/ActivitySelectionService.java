@@ -8,13 +8,13 @@ public class ActivitySelectionService {
     private final ActivityDetailService activityDetailService;
 
     // Store itineraries per user
-    private final Map<String, List<ItineraryItem>> userItineraries = new HashMap<>();
+    private final Map<String, List<ItineraryItemAddition>> userItineraries = new HashMap<>();
 
     public ActivitySelectionService(ActivityDetailService activityDetailService) {
         this.activityDetailService = activityDetailService;
     }
 
-    ItineraryItem addToItinerary(String userId, String activityId, LocalDateTime preferredTime,
+    ItineraryItemAddition addToItinerary(String userId, String activityId, LocalDateTime preferredTime,
             boolean autoSchedule) {
         // adds the activity to the user's itinerary
         Activity activity = activityDetailService.getActivityDetails(activityId);
@@ -29,7 +29,7 @@ public class ActivitySelectionService {
             finalTime = autoAssignTime(userId, preferredTime);
         }
 
-        ItineraryItem item = new ItineraryItem(userId, activityId, finalTime, autoSchedule);
+        ItineraryItemAddition item = new ItineraryItemAddition(userId, activityId, finalTime, autoSchedule);
 
         userItineraries.computeIfAbsent(userId, k -> new ArrayList<>()).add(item);
         return item;
@@ -39,7 +39,7 @@ public class ActivitySelectionService {
         // This is a very basic implementation of auto-scheduling logic. In a real
         // application, this would be much more complex and would take into account the
         // user's existing itinerary, the duration of the activity, and other factors.
-        List<ItineraryItem> itinerary = userItineraries.getOrDefault(userId, new ArrayList<>());
+        List<ItineraryItemAddition> itinerary = userItineraries.getOrDefault(userId, new ArrayList<>());
         if (itinerary.isEmpty()) {
             return preferredTime;
         }

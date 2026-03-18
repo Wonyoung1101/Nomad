@@ -21,6 +21,12 @@ public class UserItinerary {
         this.userId = userId;
     }
 
+    public UserItinerary(String userId, BigDecimal totalBudget) {
+        this.userId = userId;
+        this.totalBudget = totalBudget;
+        this.remainingBudget = totalBudget;
+    }
+
     public String getUserId() {
         return userId;
     }

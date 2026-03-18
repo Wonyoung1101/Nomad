@@ -1,4 +1,5 @@
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import Travel.Activities.*;
@@ -21,7 +22,7 @@ public class testharness {
         }
 
         ActivityFilter filter = new ActivityFilter();
-        filter.setCategory("outdoors");
+        filter.setActivityType("Mountain");
         List<Activity> filteredActivities = listingService.filterActivities("Mountain", LocalDate.now(), filter);
         if(!filteredActivities.isEmpty()){
             System.out.println("Activities filtered successfully: " + filteredActivities.get(0).getName());
@@ -33,7 +34,38 @@ public class testharness {
         //Itinerary
         System.out.println("---Itinerary Tests:---");
 
-        //Reviews 
+        // Test ItineraryItem creation
+        LocalDateTime preferredTime = LocalDateTime.of(2024, 6, 15, 10, 0);
+        ItineraryItem item1 = new ItineraryItem("item1", "user123", "hike01", preferredTime, false);
+        System.out.println("ItineraryItem created: " + item1.getActivityId() + " at " + item1.getPreferredTime());
+
+        // Test UserItinerary
+        UserItinerary userItinerary = new UserItinerary("user123", java.math.BigDecimal.valueOf(500));
+        userItinerary.addItem(item1);
+        System.out.println("UserItinerary created with " + userItinerary.getItems().size() + " items");
+        System.out.println("Remaining budget: $" + userItinerary.getRemainingBudget());
+
+        // Test ItineraryService
+        BudgetCalculation budgetCalc = new BudgetCalculation();
+        ItineraryService itineraryService = new ItineraryService(budgetCalc);
+
+        itineraryService.addItem("user123", item1);
+        List<ItineraryItem> userItems = itineraryService.listItems("user123");
+        System.out.println("ItineraryService has " + userItems.size() + " items for user123");
+
+        // Test schedule update
+        LocalDateTime newTime = LocalDateTime.of(2024, 6, 15, 14, 0);
+        itineraryService.updateSchedule("user123", "item1", newTime);
+        System.out.println("Schedule updated for item1");
+
+        // Test item removal
+        itineraryService.removeItem("user123", "item1");
+        userItems = itineraryService.listItems("user123");
+        System.out.println("After removal, user123 has " + userItems.size() + " items");
+
+        System.out.println("---Itinerary Tests End---\n"); 
+
+        //Reviews
         System.out.println("---Review Tests:---");
         ReviewService reviewService = new ReviewService();
         ReviewForm form1 = new ReviewForm("This is a great place to visit!");
