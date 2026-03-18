@@ -2,9 +2,11 @@ package Travel.Itinerary;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
 
 public class BudgetCalculation {
-    private final Map<String, Itinerary> repo = new HashMap<>(); //maps userId to their itinerary
+    private final Map<String, UserItinerary> repo = new HashMap<>(); //maps userId to their itinerary
 
     public BudgetCalculation() {};
     

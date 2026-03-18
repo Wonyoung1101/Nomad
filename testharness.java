@@ -22,7 +22,7 @@ public class testharness {
 
         ActivityFilter filter = new ActivityFilter();
         filter.setCategory("outdoors");
-        List<Activity> filteredActivities = listingService.filterActivties("Mountain", LocalDate.now(), filter);
+        List<Activity> filteredActivities = listingService.filterActivities("Mountain", LocalDate.now(), filter);
         if(!filteredActivities.isEmpty()){
             System.out.println("Activities filtered successfully: " + filteredActivities.get(0).getName());
         } else {

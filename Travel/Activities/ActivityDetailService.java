@@ -7,8 +7,8 @@ public class ActivityDetailService {
     private final Map<String, Activity> activityDatabase = new HashMap<>(); // This will act as our in-memory database for activities
 
     public ActivityDetailService() {
-        activityDatabase.put("hike01", new Activity("hike01", "Mountain Hike", "A sceneic 5 mile trail"));
-        activityDatabase.put("museum01", new Activity("museum01", "Art Museum", "A world class art museum with exhibits from around the world"));
+        activityDatabase.put("hike01", new Activity("hike01", "Mountain Hike", "A sceneic 5 mile trail", "Mountain", 15.00));
+        activityDatabase.put("museum01", new Activity("museum01", "Art Museum", "A world class art museum with exhibits from around the world", "NYC", 20.00));
     }
     
     public Activity getActivityDetails(String activityId) {
