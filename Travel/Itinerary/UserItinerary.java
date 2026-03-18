@@ -19,10 +19,14 @@ public class UserItinerary {
     }
     public UserItinerary(String userId) {
         this.userId = userId;
+        this.items = new ArrayList<>();
+        this.totalBudget = BigDecimal.ZERO;
+        this.remainingBudget = BigDecimal.ZERO;
     }
 
     public UserItinerary(String userId, BigDecimal totalBudget) {
         this.userId = userId;
+        this.items = new ArrayList<>();
         this.totalBudget = totalBudget;
         this.remainingBudget = totalBudget;
     }
