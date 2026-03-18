@@ -10,7 +10,7 @@ import java.util.*;
  *  - Auth: signUp/login/logout/session validation
  *  - Accommodation: search options, calculate exact costs, estimate when exact unavailable, add to itinerary
  */
-public class AuthAccommodationation {
+public class AuthAccommodation {
 
     /* =========================
        AUTHENTICATION MODULE (auth)
@@ -46,19 +46,15 @@ public class AuthAccommodationation {
 
         @Override
         public String toString() {
-            return "UserSession{sessionId='" + sessionId + "', email='" + email + "', createdAtEpochMs=" + createdAtEpochMs + "}";
+            return "UserSession{sessionId='" + sessionId + "', email='" + email
+                + "', createdAtEpochMs=" + createdAtEpochMs + "}";
         }
     }
 
     public static class AuthService {
-        // In-memory storage
         private final Map<String, UserAccount> accountsByEmail = new HashMap<>();
         private final Map<String, UserSession> sessionsById = new HashMap<>();
 
-        /**
-         * UserSession login(String email, String password)
-         * Authenticates the user and returns a session object.
-         */
         public UserSession login(String email, String password) {
             requireNonBlank(email, "email");
             requireNonBlank(password, "password");
@@ -79,14 +75,6 @@ public class AuthAccommodationation {
             return session;
         }
 
-        /**
-         * UserAccount signUp(String email, String password, String name)
-         * Creates a new user account after validating input.
-         *
-         * Business rules:
-         *  - emails must be unique
-         *  - passwords must meet security requirements
-         */
         public UserAccount signUp(String email, String password, String name) {
             requireNonBlank(email, "email");
             requireNonBlank(password, "password");
@@ -97,7 +85,6 @@ public class AuthAccommodationation {
                 throw new IllegalArgumentException("Email already exists: " + email);
             }
 
-            // simple security requirement (stub)
             if (password.length() < 8) {
                 throw new IllegalArgumentException("Password must be at least 8 characters.");
             }
@@ -110,25 +97,15 @@ public class AuthAccommodationation {
             return account;
         }
 
-        /**
-         * void logout(String sessionId)
-         * Terminates the active session.
-         */
         public void logout(String sessionId) {
             requireNonBlank(sessionId, "sessionId");
             sessionsById.remove(sessionId);
         }
 
-        /**
-         * boolean isAuthenticated(String sessionId)
-         * Checks whether a session is valid.
-         */
         public boolean isAuthenticated(String sessionId) {
-            if (sessionId == null || sessionId.isBlank()) return false;
-            return sessionsById.containsKey(sessionId);
+            return sessionId != null && !sessionId.isBlank() && sessionsById.containsKey(sessionId);
         }
 
-        // helpers
         private static void requireNonBlank(String s, String field) {
             if (s == null || s.isBlank()) {
                 throw new IllegalArgumentException(field + " must not be blank.");
@@ -136,19 +113,22 @@ public class AuthAccommodationation {
         }
 
         private static boolean containsLetter(String s) {
-            for (char c : s.toCharArray()) if (Character.isLetter(c)) return true;
+            for (char c : s.toCharArray()) {
+                if (Character.isLetter(c)) return true;
+            }
             return false;
         }
 
         private static boolean containsDigit(String s) {
-            for (char c : s.toCharArray()) if (Character.isDigit(c)) return true;
+            for (char c : s.toCharArray()) {
+                if (Character.isDigit(c)) return true;
+            }
             return false;
         }
     }
 
-
     /* =========================
-       ACCOMMODATION MODULE (accommodation)
+       ACCOMMODATION MODULE
        ========================= */
 
     public enum LodgingType {
@@ -212,19 +192,20 @@ public class AuthAccommodationation {
             this.total = round2(this.baseCost + this.taxes + this.mandatoryFees);
         }
 
-        private static double round2(double v) {
-            return Math.round(v * 100.0) / 100.0;
+        private static double round2(double value) {
+            return Math.round(value * 100.0) / 100.0;
         }
 
         @Override
         public String toString() {
-            return "CostBreakdown{base=" + baseCost + ", taxes=" + taxes + ", fees=" + mandatoryFees + ", total=" + total + "}";
+            return "CostBreakdown{base=" + baseCost + ", taxes=" + taxes
+                + ", fees=" + mandatoryFees + ", total=" + total + "}";
         }
     }
 
     public static class CostEstimateResult {
         public final double estimatedTotal;
-        public final boolean isEstimated; // label must be true if exact unavailable
+        public final boolean isEstimated;
         public final String note;
 
         public CostEstimateResult(double estimatedTotal, boolean isEstimated, String note) {
@@ -235,7 +216,8 @@ public class AuthAccommodationation {
 
         @Override
         public String toString() {
-            return "CostEstimateResult{estimatedTotal=" + estimatedTotal + ", isEstimated=" + isEstimated + ", note='" + note + "'}";
+            return "CostEstimateResult{estimatedTotal=" + estimatedTotal
+                + ", isEstimated=" + isEstimated + ", note='" + note + "'}";
         }
     }
 
@@ -254,7 +236,8 @@ public class AuthAccommodationation {
 
         @Override
         public String toString() {
-            return "ItineraryItem{userId=" + userId + ", accommodation=" + accommodation + ", dates=" + dates + ", guests=" + guests + "}";
+            return "ItineraryItem{userId=" + userId + ", accommodation=" + accommodation
+                + ", dates=" + dates + ", guests=" + guests + "}";
         }
     }
 
@@ -269,10 +252,6 @@ public class AuthAccommodationation {
             catalog.add(new AccommodationOption("A5", "New York", LodgingType.MOTEL, 110.0));
         }
 
-        /**
-         * List<AccommodationOption> search(String destination, DateRange dates, int guests, LodgingType type)
-         * Returns available accommodations matching user criteria.
-         */
         public List<AccommodationOption> search(String destination, DateRange dates, int guests, LodgingType type) {
             requireNonBlank(destination, "destination");
             if (dates == null) throw new IllegalArgumentException("dates cannot be null");
@@ -280,30 +259,25 @@ public class AuthAccommodationation {
             if (type == null) throw new IllegalArgumentException("type cannot be null");
 
             List<AccommodationOption> results = new ArrayList<>();
-            for (AccommodationOption opt : catalog) {
-                if (opt.destination.equalsIgnoreCase(destination) && opt.lodgingType == type) {
-                    results.add(opt);
+            for (AccommodationOption option : catalog) {
+                if (option.destination.equalsIgnoreCase(destination) && option.lodgingType == type) {
+                    results.add(option);
                 }
             }
-            // stub: always available (no inventory check)
             return results;
         }
 
         private static void requireNonBlank(String s, String field) {
-            if (s == null || s.isBlank()) throw new IllegalArgumentException(field + " must not be blank.");
+            if (s == null || s.isBlank()) {
+                throw new IllegalArgumentException(field + " must not be blank.");
+            }
         }
     }
 
     public static class AccommodationCostEstimator {
-        private static final double TAX_RATE = 0.10;               // 10%
-        private static final double MANDATORY_FEE_PER_STAY = 25.0; // fixed per stay
+        private static final double TAX_RATE = 0.10;
+        private static final double MANDATORY_FEE_PER_STAY = 25.0;
 
-        /**
-         * CostBreakdown calculateExactTotal(AccommodationOption option, DateRange dates, int guests)
-         * Computes total cost including nightly rates, taxes, and mandatory fees.
-         *
-         * Business rule: exact costs must include all mandatory charges
-         */
         public CostBreakdown calculateExactTotal(AccommodationOption option, DateRange dates, int guests) {
             if (option == null) throw new IllegalArgumentException("option cannot be null");
             if (dates == null) throw new IllegalArgumentException("dates cannot be null");
@@ -312,7 +286,6 @@ public class AuthAccommodationation {
             double nights = dates.nights();
             double base = option.nightlyRate * nights;
 
-            // guest scaling: +15% per extra guest beyond 1
             double guestMultiplier = 1.0 + (Math.max(0, guests - 1) * 0.15);
             base *= guestMultiplier;
 
@@ -322,16 +295,11 @@ public class AuthAccommodationation {
             return new CostBreakdown(base, taxes, fees);
         }
 
-        /**
-         * CostEstimateResult estimateIfExactUnavailable(AccommodationOption option, DateRange dates, int guests)
-         * Business rule: if exact pricing unavailable, must be labeled "Estimated"
-         */
         public CostEstimateResult estimateIfExactUnavailable(AccommodationOption option, DateRange dates, int guests) {
             if (option == null) throw new IllegalArgumentException("option cannot be null");
             if (dates == null) throw new IllegalArgumentException("dates cannot be null");
             if (guests <= 0) throw new IllegalArgumentException("guests must be >= 1");
 
-            // stub rule: nightlyRate <= 0 means we cannot confirm exact pricing
             if (option.nightlyRate <= 0) {
                 double estimated = 100.0 * dates.nights();
                 return new CostEstimateResult(estimated, true, "Estimated because exact pricing unavailable.");
@@ -345,10 +313,6 @@ public class AuthAccommodationation {
     public static class AccommodationSelectionService {
         private final Map<String, List<ItineraryItem>> itineraryByUser = new HashMap<>();
 
-        /**
-         * ItineraryItem addToItinerary(String userId, AccommodationOption option, DateRange dates, int guests)
-         * Business rule: budget must be updated immediately after selection (stub: store immediately)
-         */
         public ItineraryItem addToItinerary(String userId, AccommodationOption option, DateRange dates, int guests) {
             requireNonBlank(userId, "userId");
             if (option == null) throw new IllegalArgumentException("option cannot be null");
@@ -356,7 +320,7 @@ public class AuthAccommodationation {
             if (guests <= 0) throw new IllegalArgumentException("guests must be >= 1");
 
             ItineraryItem item = new ItineraryItem(userId, option, dates, guests);
-            itineraryByUser.computeIfAbsent(userId, k -> new ArrayList<>()).add(item);
+            itineraryByUser.computeIfAbsent(userId, key -> new ArrayList<>()).add(item);
             return item;
         }
 
@@ -366,7 +330,9 @@ public class AuthAccommodationation {
         }
 
         private static void requireNonBlank(String s, String field) {
-            if (s == null || s.isBlank()) throw new IllegalArgumentException(field + " must not be blank.");
+            if (s == null || s.isBlank()) {
+                throw new IllegalArgumentException(field + " must not be blank.");
+            }
         }
     }
 }
