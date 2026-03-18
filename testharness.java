@@ -1,8 +1,8 @@
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import Travel.AuthAccommodationation;
 
+import Travel.AuthAccommodation;
 import Travel.Activities.*;
 import Travel.Community.*;
 import Travel.Itinerary.*;
@@ -114,15 +114,14 @@ public class testharness {
 
         // Authentication
         System.out.println("---Authentication Tests:---");
-
-        AuthAccommodationation.AuthService authService = new AuthAccommodationation.AuthService();
+        AuthAccommodation.AuthService authService = new AuthAccommodation.AuthService();
 
         try {
-            AuthAccommodationation.UserAccount account =
+            AuthAccommodation.UserAccount account =
                 authService.signUp("wonyoung@example.com", "Pass1234", "Wonyoung Park");
             System.out.println("Sign up successful: " + account);
 
-            AuthAccommodationation.UserSession session =
+            AuthAccommodation.UserSession session =
                 authService.login("wonyoung@example.com", "Pass1234");
             System.out.println("Login successful: " + session);
 
@@ -138,43 +137,42 @@ public class testharness {
 
         // Accommodation
         System.out.println("---Accommodation Tests:---");
-
         try {
-            AuthAccommodationation.AccommodationSearchService searchService =
-                new AuthAccommodationation.AccommodationSearchService();
+            AuthAccommodation.AccommodationSearchService searchService =
+                new AuthAccommodation.AccommodationSearchService();
 
-            AuthAccommodationation.AccommodationCostEstimator costEstimator =
-                new AuthAccommodationation.AccommodationCostEstimator();
+            AuthAccommodation.AccommodationCostEstimator costEstimator =
+                new AuthAccommodation.AccommodationCostEstimator();
 
-            AuthAccommodationation.AccommodationSelectionService selectionService =
-                new AuthAccommodationation.AccommodationSelectionService();
+            AuthAccommodation.AccommodationSelectionService selectionService =
+                new AuthAccommodation.AccommodationSelectionService();
 
-            AuthAccommodationation.DateRange dateRange =
-                new AuthAccommodationation.DateRange(
+            AuthAccommodation.DateRange dateRange =
+                new AuthAccommodation.DateRange(
                     LocalDate.of(2024, 6, 15),
                     LocalDate.of(2024, 6, 18)
                 );
 
-            List<AuthAccommodationation.AccommodationOption> options =
-                searchService.search("Tokyo", dateRange, 2, AuthAccommodationation.LodgingType.HOTEL);
+            List<AuthAccommodation.AccommodationOption> options =
+                searchService.search("Tokyo", dateRange, 2, AuthAccommodation.LodgingType.HOTEL);
 
             if (!options.isEmpty()) {
-                AuthAccommodationation.AccommodationOption option = options.get(0);
+                AuthAccommodation.AccommodationOption option = options.get(0);
                 System.out.println("Accommodation found: " + option);
 
-                AuthAccommodationation.CostBreakdown breakdown =
+                AuthAccommodation.CostBreakdown breakdown =
                     costEstimator.calculateExactTotal(option, dateRange, 2);
                 System.out.println("Exact cost breakdown: " + breakdown);
 
-                AuthAccommodationation.CostEstimateResult estimate =
+                AuthAccommodation.CostEstimateResult estimate =
                     costEstimator.estimateIfExactUnavailable(option, dateRange, 2);
                 System.out.println("Estimate result: " + estimate);
 
-                AuthAccommodationation.ItineraryItem itineraryItem =
+                AuthAccommodation.ItineraryItem accommodationItem =
                     selectionService.addToItinerary("user123", option, dateRange, 2);
-                System.out.println("Added to itinerary: " + itineraryItem);
+                System.out.println("Added to itinerary: " + accommodationItem);
 
-                List<AuthAccommodationation.ItineraryItem> itinerary =
+                List<AuthAccommodation.ItineraryItem> itinerary =
                     selectionService.getItinerary("user123");
                 System.out.println("Itinerary size for user123: " + itinerary.size());
             } else {
@@ -207,12 +205,9 @@ public class testharness {
             "456 Elm St, Othertown, USA");
         System.out.println("created report id = " + id2);
 
-        System.out.println("\nlookup by id1:\n" +
-            reporting_api.getReportById(id1));
-        System.out.println("\nreports for owner U123:\n" +
-            reporting_api.getReportsByOwner("U123"));
-        System.out.println("\nreports for owner B456:\n" +
-            reporting_api.getReportsByOwner("B456"));
+        System.out.println("\nlookup by id1:\n" + reporting_api.getReportById(id1));
+        System.out.println("\nreports for owner U123:\n" + reporting_api.getReportsByOwner("U123"));
+        System.out.println("\nreports for owner B456:\n" + reporting_api.getReportsByOwner("B456"));
 
         System.out.println("\nempty-field create: " +
             reporting_api.createReport("", "", "", "", "", ""));
