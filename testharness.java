@@ -2,6 +2,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import Travel.AuthAccommodation;
 import Travel.Activities.*;
 import Travel.Community.*;
 import Travel.Itinerary.*;
@@ -11,11 +12,11 @@ import Travel.Reporting.reporting_api;
 
 public class testharness {
     public static void main(String[] args) {
-        //Activities    
+        // Activities
         System.out.println("---Activity Tests:---");
         ActivityListingService listingService = new ActivityListingService();
         List<Activity> activities = listingService.listPopular("Mountain", LocalDate.now());
-        if(!activities.isEmpty()){
+        if (!activities.isEmpty()) {
             System.out.println("Activities listed successfully: " + activities.get(0).getName());
         } else {
             System.out.println("No activities found for Mountain.");
@@ -24,28 +25,25 @@ public class testharness {
         ActivityFilter filter = new ActivityFilter();
         filter.setActivityType("Mountain");
         List<Activity> filteredActivities = listingService.filterActivities("Mountain", LocalDate.now(), filter);
-        if(!filteredActivities.isEmpty()){
+        if (!filteredActivities.isEmpty()) {
             System.out.println("Activities filtered successfully: " + filteredActivities.get(0).getName());
         } else {
             System.out.println("No activities found for Mountain with the specified filter.");
         }
         System.out.println("---Activity Tests End---\n");
 
-        //Itinerary
+        // Itinerary
         System.out.println("---Itinerary Tests:---");
 
-        // Test ItineraryItem creation
         LocalDateTime preferredTime = LocalDateTime.of(2024, 6, 15, 10, 0);
         ItineraryItem item1 = new ItineraryItem("item1", "user123", "hike01", preferredTime, false);
         System.out.println("ItineraryItem created: " + item1.getActivityId() + " at " + item1.getPreferredTime());
 
-        // Test UserItinerary
         UserItinerary userItinerary = new UserItinerary("user123", java.math.BigDecimal.valueOf(500));
         userItinerary.addItem(item1);
         System.out.println("UserItinerary created with " + userItinerary.getItems().size() + " items");
         System.out.println("Remaining budget: $" + userItinerary.getRemainingBudget());
 
-        // Test ItineraryService
         BudgetCalculation budgetCalc = new BudgetCalculation();
         ItineraryService itineraryService = new ItineraryService(budgetCalc);
 
@@ -53,32 +51,30 @@ public class testharness {
         List<ItineraryItem> userItems = itineraryService.listItems("user123");
         System.out.println("ItineraryService has " + userItems.size() + " items for user123");
 
-        // Test schedule update
         LocalDateTime newTime = LocalDateTime.of(2024, 6, 15, 14, 0);
         itineraryService.updateSchedule("user123", "item1", newTime);
         System.out.println("Schedule updated for item1");
 
-        // Test item removal
         itineraryService.removeItem("user123", "item1");
         userItems = itineraryService.listItems("user123");
         System.out.println("After removal, user123 has " + userItems.size() + " items");
 
-        System.out.println("---Itinerary Tests End---\n"); 
+        System.out.println("---Itinerary Tests End---\n");
 
-        //Reviews
+        // Reviews
         System.out.println("---Review Tests:---");
         ReviewService reviewService = new ReviewService();
         ReviewForm form1 = new ReviewForm("This is a great place to visit!");
         Review review1 = reviewService.submitReview("user1", "business", "target1", form1);
 
-        if(review1 != null){
+        if (review1 != null) {
             System.out.println("Review submitted successfully: " + review1.getReviewText());
         } else {
             System.out.println("Review submission failed.");
         }
 
         List<Review> reviews = reviewService.listReviews("business", "target1");
-        if(!reviews.isEmpty()){
+        if (!reviews.isEmpty()) {
             System.out.println("Review listed successfully: " + reviews.get(0).getReviewText());
         } else {
             System.out.println("No reviews found for target1.");
@@ -86,27 +82,27 @@ public class testharness {
 
         ReviewForm spamForm = new ReviewForm("Hello");
         Review spamReview = reviewService.submitReview("user2", "business", "target1", spamForm);
-        if(spamReview != null){
+        if (spamReview != null) {
             System.out.println("Spam review submitted successfully: " + spamReview.getReviewText());
         } else {
             System.out.println("Spam review submission failed.");
         }
         System.out.println("---Review Tests End---\n");
 
-        //Community 
+        // Community
         System.out.println("---Community Tests:---");
         BusinessSubmissionService submissionService = new BusinessSubmissionService();
 
         BusinessForm businessForm = new BusinessForm("Cafe", "location");
         SubmissionReceipt receipt = submissionService.submitBusiness("local", businessForm);
-        if(receipt != null){
+        if (receipt != null) {
             System.out.println("Business submitted successfully: " + receipt.getSubmissionId());
         } else {
             System.out.println("Business submission failed.");
         }
 
         List<Business> businesses = submissionService.listLocalBusinesses("Location");
-        if(!businesses.isEmpty()){
+        if (!businesses.isEmpty()) {
             System.out.println("Businesses listed successfully: " + businesses.get(0).getName());
         } else {
             System.out.println("No businesses found for Location.");
@@ -115,12 +111,84 @@ public class testharness {
         BusinessUpdateForm updateForm = new BusinessUpdateForm("New Cafe");
         submissionService.requestBusinessUpdate("local", receipt.getSubmissionId(), updateForm);
         System.out.println("---Community Tests End---\n");
-        // reporting tests
+
+        // Authentication
+        System.out.println("---Authentication Tests:---");
+        AuthAccommodation.AuthService authService = new AuthAccommodation.AuthService();
+
+        try {
+            AuthAccommodation.UserAccount account =
+                authService.signUp("wonyoung@example.com", "Pass1234", "Wonyoung Park");
+            System.out.println("Sign up successful: " + account);
+
+            AuthAccommodation.UserSession session =
+                authService.login("wonyoung@example.com", "Pass1234");
+            System.out.println("Login successful: " + session);
+
+            System.out.println("Is authenticated: " + authService.isAuthenticated(session.sessionId));
+
+            authService.logout(session.sessionId);
+            System.out.println("After logout, is authenticated: " + authService.isAuthenticated(session.sessionId));
+        } catch (Exception e) {
+            System.out.println("Authentication test failed: " + e.getMessage());
+        }
+
+        System.out.println("---Authentication Tests End---\n");
+
+        // Accommodation
+        System.out.println("---Accommodation Tests:---");
+        try {
+            AuthAccommodation.AccommodationSearchService searchService =
+                new AuthAccommodation.AccommodationSearchService();
+
+            AuthAccommodation.AccommodationCostEstimator costEstimator =
+                new AuthAccommodation.AccommodationCostEstimator();
+
+            AuthAccommodation.AccommodationSelectionService selectionService =
+                new AuthAccommodation.AccommodationSelectionService();
+
+            AuthAccommodation.DateRange dateRange =
+                new AuthAccommodation.DateRange(
+                    LocalDate.of(2024, 6, 15),
+                    LocalDate.of(2024, 6, 18)
+                );
+
+            List<AuthAccommodation.AccommodationOption> options =
+                searchService.search("Tokyo", dateRange, 2, AuthAccommodation.LodgingType.HOTEL);
+
+            if (!options.isEmpty()) {
+                AuthAccommodation.AccommodationOption option = options.get(0);
+                System.out.println("Accommodation found: " + option);
+
+                AuthAccommodation.CostBreakdown breakdown =
+                    costEstimator.calculateExactTotal(option, dateRange, 2);
+                System.out.println("Exact cost breakdown: " + breakdown);
+
+                AuthAccommodation.CostEstimateResult estimate =
+                    costEstimator.estimateIfExactUnavailable(option, dateRange, 2);
+                System.out.println("Estimate result: " + estimate);
+
+                AuthAccommodation.ItineraryItem accommodationItem =
+                    selectionService.addToItinerary("user123", option, dateRange, 2);
+                System.out.println("Added to itinerary: " + accommodationItem);
+
+                List<AuthAccommodation.ItineraryItem> itinerary =
+                    selectionService.getItinerary("user123");
+                System.out.println("Itinerary size for user123: " + itinerary.size());
+            } else {
+                System.out.println("No accommodation options found.");
+            }
+        } catch (Exception e) {
+            System.out.println("Accommodation test failed: " + e.getMessage());
+        }
+
+        System.out.println("---Accommodation Tests End---\n");
+
+        // Reporting
         reportingTests();
     }
 
-        private static void reportingTests() {
-        // create two reports, one user and one business
+    private static void reportingTests() {
         String id1 = reporting_api.createReport(
             "U123", "user",
             "The business was unclean and had poor customer service.",
@@ -137,20 +205,15 @@ public class testharness {
             "456 Elm St, Othertown, USA");
         System.out.println("created report id = " + id2);
 
-        // lookups
-        System.out.println("\nlookup by id1:\n" +
-            reporting_api.getReportById(id1));
-        System.out.println("\nreports for owner U123:\n" +
-            reporting_api.getReportsByOwner("U123"));
-        System.out.println("\nreports for owner B456:\n" +
-            reporting_api.getReportsByOwner("B456"));
+        System.out.println("\nlookup by id1:\n" + reporting_api.getReportById(id1));
+        System.out.println("\nreports for owner U123:\n" + reporting_api.getReportsByOwner("U123"));
+        System.out.println("\nreports for owner B456:\n" + reporting_api.getReportsByOwner("B456"));
 
-        // error cases
-        System.out.println("\nempty‑field create: " +
+        System.out.println("\nempty-field create: " +
             reporting_api.createReport("", "", "", "", "", ""));
-        System.out.println("non‑existent id: " +
-            reporting_api.getReportById("no‑such‑id"));
-        System.out.println("non‑existent owner: " +
+        System.out.println("non-existent id: " +
+            reporting_api.getReportById("no-such-id"));
+        System.out.println("non-existent owner: " +
             reporting_api.getReportsByOwner("noone"));
-        }
+    }
 }
