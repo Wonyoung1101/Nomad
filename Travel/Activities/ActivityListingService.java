@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 
 public class ActivityListingService {
 
-    private final List<Activity> activitiesDatabase = new ArrayList<>(); // This will act as our in-memory database for activities
+    private final List<Activity> activitiesDatabase = new ArrayList<>(); // This will act as our in-memory database for activities; later on this will be replaced with actual database calls or HTTP requests to the backend service
 
     public ActivityListingService() {
         activitiesDatabase.add(new Activity("hike01", "Mountain Hike", "A scenic 5 mile trail", "Mountain", 15.00, "outdoor"));

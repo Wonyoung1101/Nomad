@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 public class ActivityDetailService {
-    private final Map<String, Activity> activityDatabase = new HashMap<>(); // This will act as our in-memory database for activities
+    private final Map<String, Activity> activityDatabase = new HashMap<>(); // This will act as our in-memory database for activities for now; later on this will be replaced with actual database calls or HTTP requests to the backend service
 
     public ActivityDetailService() {
         activityDatabase.put("hike01", new Activity("hike01", "Mountain Hike", "A sceneic 5 mile trail", "Mountain", 15.00, "outdoor"));
