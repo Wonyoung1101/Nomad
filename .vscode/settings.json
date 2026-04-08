@@ -1,0 +1,30 @@
+{
+  "sqlLanguageServer.connections": [
+    {
+      "name": "Nomads",
+      "adapter": "mysql",
+      "host": "127.0.0.1",
+      "port": 3306,
+      "user": "Daniela",
+      "password": "F@mili@3690",
+      "database": "businesses"
+    }
+  ],
+  "sqltools.connections": [
+    {
+      "mysqlOptions": {
+        "authProtocol": "xprotocol",
+        "enableSsl": "Disabled"
+      },
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 3306,
+      "driver": "MySQL",
+      "name": "Nomads",
+      "database": "businesses",
+      "username": "Daniela",
+      "password": "F@mili@3690"
+    }
+  ]
+}
