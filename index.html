@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nomad | Automatic Trip Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="site-header no-print">
+      <nav class="navbar">
+        <a class="brand" href="#top" aria-label="Nomad home">
+          <span class="brand-mark">N</span>
+          <span class="brand-text">Nomad</span>
+        </a>
+        <div class="nav-links">
+          <a href="#planner" data-nav-link="planner">Plan Trip</a>
+          <a href="#results" data-nav-link="results">Results</a>
+          <a href="#contact" data-nav-link="contact">Contact</a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero-section no-print">
+        <div class="hero-copy">
+          <p class="eyebrow">Automatic trip planning</p>
+          <h1>Plan your trip around your budget.</h1>
+          <p class="hero-text">
+            Nomad helps you build a smarter itinerary based on your destination, travel dates, and spending style.
+            It creates a complete travel plan with recommended areas, activities, food, transportation, and hotel options
+            shaped around how much you want to spend.
+          </p>
+          <div class="hero-flow">
+            <span>Enter trip details</span>
+            <span>Build itinerary</span>
+            <span>Review results</span>
+            <span>Download PDF</span>
+          </div>
+        </div>
+
+        <aside class="hero-guide">
+          <p class="eyebrow">How it works</p>
+          <ol class="steps-list">
+            <li>Enter your destination, travel dates, arrival time, departure time, and total budget.</li>
+            <li>Click <strong>Build My Trip</strong>.</li>
+            <li>Review the generated stay, itinerary, and budget summary.</li>
+            <li>Download the itinerary as a PDF and save it to your phone or laptop.</li>
+          </ol>
+          <div class="guide-note">
+            <i class="guide-icon" aria-hidden="true"></i>
+            <span class="guide-note-label">Built for practical planning</span>
+            <p>Nomad turns a simple travel window and budget into a trip plan you can actually use on the go.</p>
+          </div>
+        </aside>
+      </section>
+
+      <section class="planner-section app-section no-print" id="planner" data-section="planner">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Trip Builder</p>
+            <h2>Start with your travel window and budget</h2>
+          </div>
+          <p class="section-note">Nomad generates the itinerary automatically from your destination, dates, times, and budget.</p>
+        </div>
+
+        <form id="trip-form" class="trip-form" novalidate>
+          <div class="field-grid">
+            <label>
+              <span>Destination / Country</span>
+              <input id="destination-input" name="destination" type="text" placeholder="Seoul, Tokyo, New York">
+            </label>
+            <label>
+              <span>Start Date</span>
+              <input id="start-date-input" name="start-date" type="date">
+            </label>
+            <label>
+              <span>Total Budget (USD)</span>
+              <input id="budget-input" name="budget" type="number" min="1" step="50" placeholder="1200">
+            </label>
+            <label>
+              <span>End Date</span>
+              <input id="end-date-input" name="end-date" type="date">
+            </label>
+            <label>
+              <span>Arrival Time</span>
+              <input id="arrival-time-input" name="arrival-time" type="time">
+            </label>
+            <label>
+              <span>Departure Time</span>
+              <input id="departure-time-input" name="departure-time" type="time">
+            </label>
+          </div>
+
+          <div id="form-message" class="form-message" aria-live="polite"></div>
+
+          <div class="form-actions">
+            <button type="submit" class="primary-button">Build My Trip</button>
+            <button type="button" id="reset-button" class="secondary-button">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="results-section app-section" id="results" aria-live="polite" data-section="results">
+        <div class="results-header">
+          <div>
+            <p class="eyebrow">Generated Itinerary</p>
+            <h2 id="results-title">Your automatic trip itinerary</h2>
+          <p id="results-subtitle" class="section-note"></p>
+          </div>
+          <div class="export-toolbar no-print">
+            <button type="button" id="download-pdf-button" class="secondary-button toolbar-button">Export Itinerary as PDF</button>
+          </div>
+        </div>
+
+        <div id="results-empty-state" class="results-empty-state">
+          <div class="empty-state-box">
+            <p id="results-empty-eyebrow" class="eyebrow">No Results Yet</p>
+            <h3 id="results-empty-title">No trip results yet.</h3>
+            <p id="results-empty-text">Start by entering your destination, dates, arrival time, departure time, and budget, then click Build My Trip.</p>
+            <div id="results-empty-details" class="empty-state-details" hidden></div>
+            <button type="button" id="go-to-builder-button" class="primary-button no-print">Go to Trip Builder</button>
+          </div>
+        </div>
+
+        <div id="printable-itinerary" class="printable-itinerary">
+          <div id="generation-notice" class="generation-notice" hidden></div>
+          <div class="results-layout">
+            <div class="results-main">
+              <section class="content-panel plan-overview-panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Trip Overview</p>
+                    <h3>Your trip at a glance</h3>
+                  </div>
+                </div>
+                <div id="overview-grid" class="overview-grid"></div>
+              </section>
+
+              <section class="content-panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Recommended Stay</p>
+                    <h3>Selected to fit the trip and budget</h3>
+                  </div>
+                </div>
+                <div id="stay-recommendation"></div>
+              </section>
+
+              <section class="content-panel itinerary-focus-panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Day-by-Day Itinerary</p>
+                    <h3>The full generated travel plan</h3>
+                  </div>
+                </div>
+                <div id="itinerary-list" class="timeline-list"></div>
+              </section>
+            </div>
+
+            <aside class="results-sidebar">
+              <section class="content-panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Budget Summary</p>
+                    <h3>Budget fit and usage</h3>
+                  </div>
+                </div>
+                <div class="budget-box">
+                  <div class="budget-row">
+                    <span>Destination</span>
+                    <strong id="summary-destination">-</strong>
+                  </div>
+                  <div class="budget-row">
+                    <span>Dates</span>
+                    <strong id="summary-dates">-</strong>
+                  </div>
+                  <div class="budget-row">
+                    <span>Arrival / Departure</span>
+                    <strong id="summary-times">-</strong>
+                  </div>
+                  <div class="budget-row">
+                    <span>Total budget</span>
+                    <strong id="summary-budget">$0</strong>
+                  </div>
+                  <div class="budget-row">
+                    <span>Recommended stay</span>
+                    <strong id="summary-stay-cost">$0</strong>
+                  </div>
+                  <div class="budget-row">
+                    <span>Planned activities</span>
+                    <strong id="summary-activity-cost">$0</strong>
+                  </div>
+                  <div class="budget-row total-row">
+                    <span>Estimated total</span>
+                    <strong id="summary-total-cost">$0</strong>
+                  </div>
+                  <div class="budget-row">
+                    <span id="summary-remaining-label">Remaining</span>
+                    <strong id="summary-remaining">$0</strong>
+                  </div>
+                  <div class="budget-row">
+                    <span>Budget usage</span>
+                    <strong id="summary-usage">0%</strong>
+                  </div>
+                  <div class="budget-progress" aria-hidden="true">
+                    <div id="budget-progress-fill" class="budget-progress-fill"></div>
+                  </div>
+                  <div class="budget-status" id="budget-status">Build a trip to see budget status</div>
+                  <p class="budget-note" id="budget-explanation">Nomad will explain how the plan fits your budget after generation.</p>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section class="about-section app-section no-print" id="about" data-section="about">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">About Nomad</p>
+            <h2>A travel planner shaped by real places, real budgets, and student life.</h2>
+          </div>
+          <p class="section-note">Nomad is designed to make travel planning feel practical, aspirational, and personal at the same time.</p>
+        </div>
+
+        <div class="about-story-grid">
+          <article class="about-story-card about-story-wide">
+            <div class="about-story-media">
+              <img src="/Users/wonyoung/Downloads/사진1.jpeg" alt="Founder in a city at night with skyline lights behind him.">
+            </div>
+            <div class="about-story-copy">
+              <p class="eyebrow">Travel Inspiration</p>
+              <h3>Big city nights</h3>
+              <p>This view captures the kind of city energy Nomad is built for: fast-moving, exciting destinations that still need a plan that feels calm and usable.</p>
+            </div>
+          </article>
+
+          <article class="about-story-card">
+            <div class="about-story-media">
+              <img src="/Users/wonyoung/Downloads/사진2.jpeg" alt="Founder standing at the beach with ocean waves behind him.">
+            </div>
+            <div class="about-story-copy">
+              <p class="eyebrow">Destination Lifestyle</p>
+              <h3>Adventure with room to breathe</h3>
+              <p>This beach moment reflects the kind of travel Nomad supports: lighter, memorable trips that balance exploration, budget, and the feeling of actually being away.</p>
+            </div>
+          </article>
+
+          <article class="about-story-card">
+            <div class="about-story-media">
+              <img src="/Users/wonyoung/Downloads/사진3.jpeg" alt="Founder taking an everyday selfie outdoors with a backpack on.">
+            </div>
+            <div class="about-story-copy">
+              <p class="eyebrow">Founder Story</p>
+              <h3>Built around everyday planning</h3>
+              <p>Nomad comes from a student perspective: making travel feel more possible by turning limited time, real budgets, and everyday routines into clearer trip plans.</p>
+            </div>
+          </article>
+        </div>
+
+        <section class="founder-video-card">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Founder Video</p>
+              <h3>Watch the story behind Nomad</h3>
+            </div>
+            <p class="section-note">This short video introduces the vision behind Nomad and why budget-aware planning can make travel feel more realistic and more inspiring.</p>
+          </div>
+          <div class="video-frame">
+            <iframe
+              src="https://www.youtube.com/embed/tLHGcPfAAHU"
+              title="Founder video for Nomad"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen></iframe>
+          </div>
+          <div class="video-actions">
+            <a class="secondary-button video-link" href="https://youtu.be/tLHGcPfAAHU" target="_blank" rel="noopener noreferrer">Open on YouTube</a>
+          </div>
+        </section>
+      </section>
+
+      <section class="contact-section app-section no-print" id="contact" data-section="contact">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Contact</p>
+            <h2>Get in touch about Nomad</h2>
+          </div>
+          <p class="section-note">Questions, feedback, and class project inquiries are always welcome.</p>
+        </div>
+
+        <div class="contact-grid">
+          <section class="contact-card">
+            <p class="eyebrow">Contact Information</p>
+            <h3>Email the project founder</h3>
+            <p>If you want to reach out directly, use the PSU email below for project questions, feedback, or collaboration.</p>
+            <div class="contact-info-list">
+              <div class="contact-info-item">
+                <i class="contact-info-icon" aria-hidden="true"></i>
+                <span>Email</span>
+                <strong><a href="mailto:wvp5131@psu.edu">wvp5131@psu.edu</a></strong>
+              </div>
+            </div>
+            <a class="primary-button contact-email-button" href="mailto:wvp5131@psu.edu">Email: wvp5131@psu.edu</a>
+          </section>
+
+          <section class="contact-card">
+            <p class="eyebrow">Send a Message</p>
+            <h3>Leave a quick note</h3>
+            <form id="contact-form" class="contact-form" novalidate>
+              <label>
+                <span>Name</span>
+                <input id="contact-name-input" name="contact-name" type="text" placeholder="Your name">
+              </label>
+              <label>
+                <span>Email</span>
+                <input id="contact-email-input" name="contact-email" type="email" placeholder="wvp5131@psu.edu">
+              </label>
+              <label>
+                <span>Message</span>
+                <textarea id="contact-message-input" name="contact-message" rows="5" placeholder="Share your feedback, question, or project note."></textarea>
+              </label>
+              <div id="contact-form-message" class="form-message" aria-live="polite"></div>
+              <div class="form-actions">
+                <button type="submit" class="primary-button">Send Message</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer no-print">
+      <div class="footer-copy">
+        <span class="footer-brand">Nomad</span>
+        <p>Budget-aware travel planning with a calmer way to build and carry your itinerary.</p>
+        <p class="footer-contact">Email: <a href="mailto:wvp5131@psu.edu">wvp5131@psu.edu</a></p>
+      </div>
+      <div class="footer-links">
+        <a href="#planner" data-nav-link="planner">Plan Trip</a>
+        <a href="#results" data-nav-link="results">Results</a>
+        <a href="#contact" data-nav-link="contact">Contact</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
