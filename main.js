@@ -136,8 +136,20 @@ const tripCatalog = {
 
 const appState = {
   currentTrip: null,
-  feasibilityAdvice: null
+  feasibilityAdvice: null,
+  loadingTrip: false,
+  authUser: null,
+  authReady: false,
+  authMode: "login",
+  authBusy: false,
+  savedTrips: [],
+  loadingSavedTrips: false,
+  savingTrip: false
 };
+
+const supabaseConfig = window.NOMAD_SUPABASE_CONFIG || {};
+const supabaseFactory = window.supabase;
+let supabaseClient = null;
 
 const destinationInput = document.getElementById("destination-input");
 const startDateInput = document.getElementById("start-date-input");
@@ -158,6 +170,8 @@ const contactFormMessage = document.getElementById("contact-form-message");
 const resultsTitle = document.getElementById("results-title");
 const resultsSubtitle = document.getElementById("results-subtitle");
 const resultsSection = document.getElementById("results");
+const saveTripButton = document.getElementById("save-trip-button");
+const saveTripMessage = document.getElementById("save-trip-message");
 const resultsEmptyState = document.getElementById("results-empty-state");
 const resultsEmptyEyebrow = document.getElementById("results-empty-eyebrow");
 const resultsEmptyTitle = document.getElementById("results-empty-title");
@@ -166,8 +180,29 @@ const resultsEmptyDetails = document.getElementById("results-empty-details");
 const overviewGrid = document.getElementById("overview-grid");
 const stayRecommendation = document.getElementById("stay-recommendation");
 const itineraryList = document.getElementById("itinerary-list");
+const savedTripsSection = document.getElementById("my-trips");
+const savedTripsNote = document.getElementById("saved-trips-note");
+const savedTripsMessage = document.getElementById("saved-trips-message");
+const savedTripsList = document.getElementById("saved-trips-list");
 const navLinks = Array.from(document.querySelectorAll("[data-nav-link]"));
 const appSections = Array.from(document.querySelectorAll(".app-section"));
+const accountStatus = document.getElementById("account-status");
+const accountStatusTitle = document.getElementById("account-status-title");
+const accountStatusDetail = document.getElementById("account-status-detail");
+const openLoginButton = document.getElementById("open-login-button");
+const openSignupButton = document.getElementById("open-signup-button");
+const logoutButton = document.getElementById("logout-button");
+const authModal = document.getElementById("auth-modal");
+const closeAuthButton = document.getElementById("close-auth-button");
+const authBackdrop = authModal?.querySelector("[data-auth-close]");
+const authForm = document.getElementById("auth-form");
+const authDialogTitle = document.getElementById("auth-dialog-title");
+const authDialogCopy = document.getElementById("auth-dialog-copy");
+const authEmailInput = document.getElementById("auth-email-input");
+const authPasswordInput = document.getElementById("auth-password-input");
+const authFormMessage = document.getElementById("auth-form-message");
+const authSubmitButton = document.getElementById("auth-submit-button");
+const authSwitchButton = document.getElementById("auth-switch-button");
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-US", {
@@ -212,6 +247,12 @@ function formatDuration(minutes) {
   if (hours && remainder) return `${hours} hr ${remainder} min`;
   if (hours) return `${hours} hr`;
   return `${remainder} min`;
+}
+
+function rotateList(items, offset) {
+  if (!items.length) return [];
+  const safeOffset = ((offset % items.length) + items.length) % items.length;
+  return items.slice(safeOffset).concat(items.slice(0, safeOffset));
 }
 
 function parseTimeLabelToMinutes(value) {
@@ -311,6 +352,116 @@ function getTravelStyle(destinationKey, budget) {
   return "Flexible traveler plan";
 }
 
+function getBudgetProfile(budgetPerDay) {
+  if (budgetPerDay <= 90) return { label: "lean", mealMultiplier: 0.88, stayMultiplier: 0.92, activityMultiplier: 0.8 };
+  if (budgetPerDay <= 150) return { label: "balanced", mealMultiplier: 1, stayMultiplier: 1, activityMultiplier: 0.95 };
+  if (budgetPerDay <= 240) return { label: "comfortable", mealMultiplier: 1.08, stayMultiplier: 1.06, activityMultiplier: 1.06 };
+  return { label: "premium", mealMultiplier: 1.18, stayMultiplier: 1.12, activityMultiplier: 1.14 };
+}
+
+function getSeasonProfile(startDate) {
+  const month = new Date(`${startDate}T00:00:00`).getMonth() + 1;
+  if ([12, 1, 2].includes(month)) return { label: "winter", mood: "seasonal indoor stops and cozy meal pacing" };
+  if ([3, 4, 5].includes(month)) return { label: "spring", mood: "walkable neighborhoods and lighter daytime pacing" };
+  if ([6, 7, 8].includes(month)) return { label: "summer", mood: "longer daylight, flexible outdoor routes, and later evenings" };
+  return { label: "autumn", mood: "balanced indoor-outdoor planning with a stronger food rhythm" };
+}
+
+function getTravelWindowProfile(arrivalTime, departureTime, tripDayCount) {
+  const arrivalMinutes = timeToMinutes(arrivalTime);
+  const departureMinutes = timeToMinutes(departureTime);
+  if (tripDayCount === 1) return { label: "single-day", note: "a compact same-day travel window" };
+  if (arrivalMinutes >= 1200 && departureMinutes <= 600) return { label: "compressed", note: "a compressed first and last day" };
+  if (arrivalMinutes <= 540 && departureMinutes >= 1080) return { label: "full-window", note: "a wide arrival and departure window" };
+  return { label: "balanced", note: "a balanced arrival and departure rhythm" };
+}
+
+function gatherTripInput() {
+  const destinationKey = resolveSupportedDestination(destinationInput.value);
+  const budget = Number(budgetInput.value);
+  const startDate = startDateInput.value;
+  const endDate = endDateInput.value;
+  const arrivalTime = arrivalTimeInput.value;
+  const departureTime = departureTimeInput.value;
+  const tripDayCount = getTripDayCount(startDate, endDate);
+  const nightCount = getNightCount(startDate, endDate);
+  const budgetPerDay = budget / Math.max(1, tripDayCount);
+
+  return {
+    destinationKey,
+    budget,
+    startDate,
+    endDate,
+    arrivalTime,
+    departureTime,
+    tripDayCount,
+    nightCount,
+    budgetPerDay
+  };
+}
+
+function buildDynamicDestinationData(tripInput) {
+  const base = tripCatalog[tripInput.destinationKey];
+  const budgetProfile = getBudgetProfile(tripInput.budgetPerDay);
+  const seasonProfile = getSeasonProfile(tripInput.startDate);
+  const travelWindowProfile = getTravelWindowProfile(tripInput.arrivalTime, tripInput.departureTime, tripInput.tripDayCount);
+  const seed = tripInput.tripDayCount
+    + tripInput.nightCount
+    + Math.round(tripInput.budgetPerDay)
+    + timeToMinutes(tripInput.arrivalTime)
+    + timeToMinutes(tripInput.departureTime);
+  const stayOffset = seed % base.stays.length;
+  const activityOffset = seed % base.activities.length;
+  const breakfastOffset = seed % base.meals.breakfast.length;
+  const lunchOffset = seed % base.meals.lunch.length;
+  const dinnerOffset = seed % base.meals.dinner.length;
+  const snackOffset = seed % base.meals.snack.length;
+
+  return {
+    ...base,
+    tagline: `${base.name} planning tuned for ${travelWindowProfile.note}, ${seasonProfile.mood}, and a ${budgetProfile.label} budget.`,
+    stays: rotateList(base.stays, stayOffset).map((stay, index) => ({
+      ...stay,
+      nightlyRate: Math.max(
+        55,
+        Math.round(stay.nightlyRate * budgetProfile.stayMultiplier) + ((tripInput.tripDayCount > 4 ? -8 : 6) * index)
+      ),
+      note: `${stay.note} This option works well for ${travelWindowProfile.note} and a ${budgetProfile.label} city budget.`
+    })),
+    meals: {
+      breakfast: rotateList(base.meals.breakfast, breakfastOffset).map((meal) => ({
+        ...meal,
+        cost: Math.max(8, Math.round(meal.cost * budgetProfile.mealMultiplier)),
+        durationMinutes: meal.durationMinutes + (seasonProfile.label === "winter" ? 5 : 0)
+      })),
+      lunch: rotateList(base.meals.lunch, lunchOffset).map((meal) => ({
+        ...meal,
+        cost: Math.max(12, Math.round(meal.cost * budgetProfile.mealMultiplier)),
+        durationMinutes: meal.durationMinutes
+      })),
+      dinner: rotateList(base.meals.dinner, dinnerOffset).map((meal) => ({
+        ...meal,
+        cost: Math.max(18, Math.round(meal.cost * budgetProfile.mealMultiplier)),
+        durationMinutes: meal.durationMinutes + (travelWindowProfile.label === "full-window" ? 5 : 0)
+      })),
+      snack: rotateList(base.meals.snack, snackOffset).map((meal) => ({
+        ...meal,
+        cost: Math.max(6, Math.round(meal.cost * Math.min(1.05, budgetProfile.mealMultiplier))),
+        durationMinutes: meal.durationMinutes
+      }))
+    },
+    activities: rotateList(base.activities, activityOffset).map((activity, index) => ({
+      ...activity,
+      cost: Math.max(
+        activity.type.toLowerCase().includes("walk") ? 0 : 8,
+        Math.round(activity.cost * budgetProfile.activityMultiplier) + (index % 2 === 0 ? 0 : 2)
+      ),
+      durationMinutes: activity.durationMinutes + (tripInput.tripDayCount >= 4 && activity.preferredWindow !== "evening" ? 10 : 0),
+      note: `${activity.note} It also suits ${seasonProfile.label} travel and ${travelWindowProfile.note}.`
+    }))
+  };
+}
+
 function setFormMessage(message, type = "") {
   formMessage.textContent = message;
   formMessage.className = "form-message";
@@ -321,6 +472,419 @@ function setContactFormMessage(message, type = "") {
   contactFormMessage.textContent = message;
   contactFormMessage.className = "form-message";
   if (type) contactFormMessage.classList.add(type);
+}
+
+function setAuthMessage(message, type = "") {
+  if (!authFormMessage) return;
+  authFormMessage.textContent = message;
+  authFormMessage.className = "form-message";
+  if (type) authFormMessage.classList.add(type);
+}
+
+function setSaveTripMessage(message, type = "") {
+  if (!saveTripMessage) return;
+  saveTripMessage.textContent = message;
+  saveTripMessage.className = "form-message no-print";
+  if (type) saveTripMessage.classList.add(type);
+}
+
+function setSavedTripsMessage(message, type = "") {
+  if (!savedTripsMessage) return;
+  savedTripsMessage.textContent = message;
+  savedTripsMessage.className = "form-message";
+  if (type) savedTripsMessage.classList.add(type);
+}
+
+function hasSupabaseAuthConfig() {
+  return Boolean(supabaseFactory?.createClient && supabaseConfig.url && supabaseConfig.anonKey);
+}
+
+function setAuthBusy(isBusy) {
+  appState.authBusy = isBusy;
+  if (!authSubmitButton || !authSwitchButton || !authEmailInput || !authPasswordInput) return;
+  authSubmitButton.disabled = isBusy;
+  authSwitchButton.disabled = isBusy;
+  authEmailInput.disabled = isBusy;
+  authPasswordInput.disabled = isBusy;
+  if (logoutButton) logoutButton.disabled = isBusy;
+}
+
+function setAuthMode(mode) {
+  appState.authMode = mode === "signup" ? "signup" : "login";
+  if (!authDialogTitle || !authDialogCopy || !authSubmitButton || !authSwitchButton || !authPasswordInput) return;
+
+  const isSignup = appState.authMode === "signup";
+  authDialogTitle.textContent = isSignup ? "Create your Nomad account" : "Log in to Nomad";
+  authDialogCopy.textContent = isSignup
+    ? "Use email and password to create an account for Nomad. If email confirmation is enabled, you will be asked to verify before signing in."
+    : "Sign in with your email and password to continue with your Nomad account.";
+  authSubmitButton.textContent = isSignup ? "Sign Up" : "Log In";
+  authSwitchButton.textContent = isSignup ? "Already have an account? Log In" : "Need an account? Sign Up";
+  authPasswordInput.autocomplete = isSignup ? "new-password" : "current-password";
+  setAuthMessage("");
+}
+
+function openAuthModal(mode = "login") {
+  if (!authModal) return;
+  setAuthMode(mode);
+  authModal.hidden = false;
+  document.body.classList.add("auth-open");
+  window.setTimeout(() => {
+    if (appState.authMode === "signup") {
+      authEmailInput?.focus();
+    } else {
+      authEmailInput?.focus();
+    }
+  }, 30);
+}
+
+function closeAuthModal() {
+  if (!authModal) return;
+  authModal.hidden = true;
+  document.body.classList.remove("auth-open");
+  setAuthMessage("");
+}
+
+function renderAuthUI() {
+  const user = appState.authUser;
+  const hasConfig = hasSupabaseAuthConfig();
+  const isLoggedIn = Boolean(user);
+
+  if (accountStatus) {
+    accountStatus.classList.toggle("is-authenticated", isLoggedIn);
+  }
+
+  if (isLoggedIn) {
+    accountStatusTitle.textContent = "Logged in";
+    accountStatusDetail.textContent = user.email || "Your Nomad account is active.";
+  } else if (!hasConfig) {
+    accountStatusTitle.textContent = "Auth not configured";
+    accountStatusDetail.textContent = "Add the Supabase browser config to enable sign up and log in.";
+  } else if (!appState.authReady) {
+    accountStatusTitle.textContent = "Checking session";
+    accountStatusDetail.textContent = "Nomad is connecting to your account state.";
+  } else {
+    accountStatusTitle.textContent = "Signed out";
+    accountStatusDetail.textContent = "Use email to create or access your account.";
+  }
+
+  if (openLoginButton) openLoginButton.hidden = isLoggedIn || !hasConfig;
+  if (openSignupButton) openSignupButton.hidden = isLoggedIn || !hasConfig;
+  if (logoutButton) logoutButton.hidden = !isLoggedIn || !hasConfig;
+  if (saveTripButton) {
+    saveTripButton.disabled = !appState.currentTrip || appState.savingTrip;
+    saveTripButton.textContent = appState.savingTrip ? "Saving..." : "Save Trip";
+  }
+}
+
+function formatSavedTimestamp(value) {
+  if (!value) return "";
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+}
+
+function getTripLengthLabel(trip) {
+  return pluralizeDays(getTripDayCount(trip.startDate, trip.endDate));
+}
+
+function renderSavedTrips() {
+  if (!savedTripsList) return;
+
+  if (!appState.authUser) {
+    savedTripsNote.textContent = "Log in to save generated trip plans and reopen them from your account.";
+    savedTripsList.innerHTML = `
+      <div class="saved-trips-empty">
+        <strong>Log in to start saving trips.</strong>
+        <p>Your saved Nomad itineraries will appear here once you sign in and save a generated plan.</p>
+      </div>
+    `;
+    return;
+  }
+
+  savedTripsNote.textContent = "Saved trips are connected to your Nomad account and can be reopened anytime.";
+
+  if (appState.loadingSavedTrips) {
+    savedTripsList.innerHTML = `
+      <div class="saved-trips-empty">
+        <strong>Loading your trips...</strong>
+        <p>Nomad is fetching your saved plans from Supabase.</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (!appState.savedTrips.length) {
+    savedTripsList.innerHTML = `
+      <div class="saved-trips-empty">
+        <strong>No saved trips yet.</strong>
+        <p>Build a trip, then use Save Trip to keep it in your account.</p>
+      </div>
+    `;
+    return;
+  }
+
+  savedTripsList.innerHTML = appState.savedTrips.map((trip) => `
+    <article class="saved-trip-card">
+      <div class="saved-trip-head">
+        <div>
+          <h3>${trip.destination_label}</h3>
+          <p class="saved-trip-date">Saved ${formatSavedTimestamp(trip.created_at)}</p>
+        </div>
+        <span class="saved-trip-tag">${trip.planning_mode || "Saved plan"}</span>
+      </div>
+      <div class="saved-trip-meta">
+        <div>
+          <span>Travel dates</span>
+          <strong>${trip.date_label}</strong>
+        </div>
+        <div>
+          <span>Total budget</span>
+          <strong>${formatCurrency(trip.budget)}</strong>
+        </div>
+        <div>
+          <span>Travel window</span>
+          <strong>${trip.arrival_departure_label}</strong>
+        </div>
+        <div>
+          <span>Trip length</span>
+          <strong>${trip.trip_length_label}</strong>
+        </div>
+      </div>
+      <div class="saved-trip-actions">
+        <button type="button" class="secondary-button" data-load-trip="${trip.id}">Open Saved Trip</button>
+      </div>
+    </article>
+  `).join("");
+}
+
+function buildSavedTripPayload() {
+  const trip = appState.currentTrip;
+  if (!trip || !appState.authUser) return null;
+
+  return {
+    user_id: appState.authUser.id,
+    destination_key: trip.destinationKey,
+    destination_label: trip.destinationLabel,
+    start_date: trip.startDate,
+    end_date: trip.endDate,
+    arrival_time: trip.arrivalTime,
+    departure_time: trip.departureTime,
+    date_label: trip.dateLabel,
+    arrival_departure_label: trip.arrivalDepartureLabel,
+    budget: trip.budget,
+    planning_mode: trip.planningMode,
+    trip_length_label: getTripLengthLabel(trip),
+    total_cost: trip.totalCost,
+    budget_status: trip.budgetStatus,
+    trip_data: trip
+  };
+}
+
+async function loadSavedTrips() {
+  if (!supabaseClient || !appState.authUser) {
+    appState.savedTrips = [];
+    appState.loadingSavedTrips = false;
+    renderSavedTrips();
+    return;
+  }
+
+  try {
+    appState.loadingSavedTrips = true;
+    renderSavedTrips();
+    const { data, error } = await supabaseClient
+      .from("saved_trips")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    appState.savedTrips = data || [];
+    setSavedTripsMessage("");
+  } catch (error) {
+    appState.savedTrips = [];
+    setSavedTripsMessage(error.message || "We could not load your saved trips right now.", "error");
+  } finally {
+    appState.loadingSavedTrips = false;
+    renderSavedTrips();
+  }
+}
+
+async function saveCurrentTrip() {
+  if (!appState.currentTrip) {
+    setSaveTripMessage("Build a trip first, then save it to your account.", "error");
+    scrollToSection("planner");
+    return;
+  }
+
+  if (!appState.authUser) {
+    setSaveTripMessage("Log in before saving your trip to Supabase.", "error");
+    openAuthModal("login");
+    return;
+  }
+
+  if (!supabaseClient) {
+    setSaveTripMessage("Supabase is not configured in the browser yet, so saving is unavailable.", "error");
+    return;
+  }
+
+  const payload = buildSavedTripPayload();
+  if (!payload) return;
+
+  try {
+    appState.savingTrip = true;
+    renderAuthUI();
+    setSaveTripMessage("Saving your trip to Nomad...", "info");
+    const { data, error } = await supabaseClient
+      .from("saved_trips")
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    if (data) {
+      appState.savedTrips = [data, ...appState.savedTrips];
+    }
+    renderSavedTrips();
+    setSaveTripMessage("Trip saved successfully. You can reopen it in My Trips.", "success");
+    setSavedTripsMessage("Your latest trip is now available below.", "success");
+  } catch (error) {
+    setSaveTripMessage(error.message || "We could not save this trip right now.", "error");
+  } finally {
+    appState.savingTrip = false;
+    renderAuthUI();
+  }
+}
+
+function loadSavedTripIntoResults(savedTripId) {
+  const savedTrip = appState.savedTrips.find((trip) => trip.id === savedTripId);
+  if (!savedTrip?.trip_data) {
+    setSavedTripsMessage("We could not reopen that saved trip.", "error");
+    return;
+  }
+
+  appState.currentTrip = savedTrip.trip_data;
+  appState.feasibilityAdvice = null;
+  appState.loadingTrip = false;
+  renderResults();
+  setSaveTripMessage("Saved trip reopened in the results area.", "success");
+  scrollToSection("results");
+}
+
+async function initializeSupabaseAuth() {
+  if (!hasSupabaseAuthConfig()) {
+    appState.authReady = false;
+    renderAuthUI();
+    renderSavedTrips();
+    return;
+  }
+
+  supabaseClient = supabaseFactory.createClient(supabaseConfig.url, supabaseConfig.anonKey);
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    appState.authUser = data.session?.user || null;
+  } catch (error) {
+    appState.authUser = null;
+  }
+
+  appState.authReady = true;
+  renderAuthUI();
+  renderSavedTrips();
+  if (appState.authUser) {
+    loadSavedTrips();
+  }
+
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
+    appState.authUser = session?.user || null;
+    appState.authReady = true;
+    renderAuthUI();
+    if (appState.authUser) {
+      loadSavedTrips();
+    } else {
+      appState.savedTrips = [];
+      renderSavedTrips();
+    }
+    if (session?.user) {
+      closeAuthModal();
+    }
+  });
+}
+
+async function handleAuthSubmit(event) {
+  event.preventDefault();
+
+  if (!supabaseClient) {
+    setAuthMessage("Supabase Auth is not configured in the frontend yet. Add the browser config first.", "error");
+    return;
+  }
+
+  const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value;
+  if (!email || !password) {
+    setAuthMessage("Enter both your email and password to continue.", "error");
+    return;
+  }
+  if (!isValidEmail(email)) {
+    setAuthMessage("Please enter a valid email address.", "error");
+    return;
+  }
+  if (password.length < 6) {
+    setAuthMessage("Use a password with at least 6 characters.", "error");
+    return;
+  }
+
+  try {
+    setAuthBusy(true);
+    setAuthMessage(appState.authMode === "signup" ? "Creating your account..." : "Logging you in...", "info");
+
+    if (appState.authMode === "signup") {
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password
+      });
+      if (error) throw error;
+
+      if (data.session?.user) {
+        appState.authUser = data.session.user;
+        renderAuthUI();
+        setFormMessage("Account created. You are now logged in to Nomad.", "success");
+        closeAuthModal();
+      } else {
+        setAuthMessage("Account created. Check your email to confirm your account before logging in.", "success");
+      }
+    } else {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) throw error;
+      appState.authUser = data.user || data.session?.user || null;
+      renderAuthUI();
+      setFormMessage("You are now logged in to Nomad.", "success");
+      closeAuthModal();
+    }
+  } catch (error) {
+    setAuthMessage(error.message || "We could not complete that auth request. Please try again.", "error");
+  } finally {
+    setAuthBusy(false);
+  }
+}
+
+async function handleLogOut() {
+  if (!supabaseClient) return;
+  try {
+    setAuthBusy(true);
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) throw error;
+    appState.authUser = null;
+    renderAuthUI();
+    setFormMessage("You have been logged out of Nomad.", "success");
+  } catch (error) {
+    setFormMessage(error.message || "We could not log you out right now. Please try again.", "error");
+  } finally {
+    setAuthBusy(false);
+  }
 }
 
 function isValidEmail(value) {
@@ -1270,15 +1834,9 @@ function buildBudgetExplanation(trip) {
 }
 
 function buildTripFromForm() {
-  const destinationKey = resolveSupportedDestination(destinationInput.value);
-  const destinationData = tripCatalog[destinationKey];
-  const budget = Number(budgetInput.value);
-  const startDate = startDateInput.value;
-  const endDate = endDateInput.value;
-  const arrivalTime = arrivalTimeInput.value;
-  const departureTime = departureTimeInput.value;
-  const tripDayCount = getTripDayCount(startDate, endDate);
-  const feasibilityAdvice = buildFeasibilityAdvice(destinationData, budget, tripDayCount);
+  const tripInput = gatherTripInput();
+  const destinationData = buildDynamicDestinationData(tripInput);
+  const feasibilityAdvice = buildFeasibilityAdvice(destinationData, tripInput.budget, tripInput.tripDayCount);
 
   appState.feasibilityAdvice = feasibilityAdvice;
   if (feasibilityAdvice) {
@@ -1286,22 +1844,29 @@ function buildTripFromForm() {
     return;
   }
 
-  const selectedPlan = chooseBestPlan(destinationData, budget, startDate, endDate, arrivalTime, departureTime);
-  const remainingBudget = budget - selectedPlan.totalCost;
-  const usagePercent = Math.min(999, (selectedPlan.totalCost / budget) * 100);
+  const selectedPlan = chooseBestPlan(
+    destinationData,
+    tripInput.budget,
+    tripInput.startDate,
+    tripInput.endDate,
+    tripInput.arrivalTime,
+    tripInput.departureTime
+  );
+  const remainingBudget = tripInput.budget - selectedPlan.totalCost;
+  const usagePercent = Math.min(999, (selectedPlan.totalCost / tripInput.budget) * 100);
 
   appState.currentTrip = {
-    destinationKey,
+    destinationKey: tripInput.destinationKey,
     destinationLabel: destinationData.name,
-    travelStyle: getTravelStyle(destinationKey, budget),
+    travelStyle: getTravelStyle(tripInput.destinationKey, tripInput.budget),
     planningMode: selectedPlan.planningMode || "Budget fit",
-    budget,
-    startDate,
-    endDate,
-    arrivalTime,
-    departureTime,
-    dateLabel: formatDateRange(startDate, endDate),
-    arrivalDepartureLabel: `${formatTimeLabel(arrivalTime)} arrival · ${formatTimeLabel(departureTime)} departure`,
+    budget: tripInput.budget,
+    startDate: tripInput.startDate,
+    endDate: tripInput.endDate,
+    arrivalTime: tripInput.arrivalTime,
+    departureTime: tripInput.departureTime,
+    dateLabel: formatDateRange(tripInput.startDate, tripInput.endDate),
+    arrivalDepartureLabel: `${formatTimeLabel(tripInput.arrivalTime)} arrival · ${formatTimeLabel(tripInput.departureTime)} departure`,
     tagline: `Automatically generated around your travel window and budget. ${destinationData.tagline}`,
     recommendedStay: selectedPlan.recommendedStay,
     itineraryItems: selectedPlan.itineraryItems,
@@ -1310,7 +1875,7 @@ function buildTripFromForm() {
     budgetAdjustments: [...new Set(selectedPlan.budgetAdjustments || [])],
     remainingBudget,
     usagePercent,
-    budgetStatus: selectedPlan.totalCost <= budget ? "Within Budget" : "Over Budget",
+    budgetStatus: selectedPlan.totalCost <= tripInput.budget ? "Within Budget" : "Over Budget",
     usedFallback: Boolean(selectedPlan.usedFallback)
   };
 
@@ -1451,13 +2016,30 @@ function renderBudgetSummary() {
 function renderResults() {
   const hasTrip = Boolean(appState.currentTrip);
   const advice = appState.feasibilityAdvice;
+  const isLoading = appState.loadingTrip;
   resultsSection.classList.toggle("is-empty", !hasTrip);
+  resultsSection.classList.toggle("is-loading", isLoading);
   resultsEmptyState.hidden = hasTrip;
+  if (saveTripButton) {
+    saveTripButton.disabled = !hasTrip || appState.savingTrip;
+    saveTripButton.textContent = appState.savingTrip ? "Saving..." : "Save Trip";
+  }
 
   if (!hasTrip) {
     resultsTitle.textContent = "Your automatic trip itinerary";
-    resultsSubtitle.textContent = "Build a trip first and Nomad will generate a time-aware, budget-optimized itinerary here.";
-    if (advice) {
+    resultsSubtitle.textContent = isLoading
+      ? "Nomad is assembling a time-aware itinerary shaped around your travel window and budget."
+      : "Build a trip first and Nomad will generate a time-aware, budget-optimized itinerary here.";
+    if (isLoading) {
+      resultsEmptyEyebrow.textContent = "Generating";
+      resultsEmptyTitle.textContent = "Generating your trip plan...";
+      resultsEmptyText.textContent = "We’re matching your destination, dates, arrival window, and budget to a more personalized itinerary.";
+      resultsEmptyDetails.hidden = false;
+      resultsEmptyDetails.innerHTML = `
+        <div><span>Current step</span><strong>Personalizing stays, activities, and budget pacing</strong></div>
+        <div><span>Trip focus</span><strong>Balancing schedule, budget, and local flow</strong></div>
+      `;
+    } else if (advice) {
       resultsEmptyEyebrow.textContent = "Budget Recommendation";
       resultsEmptyTitle.textContent = "Your current budget is too low for this trip length.";
       resultsEmptyText.textContent = `For ${advice.destinationLabel}, Nomad recommends either shortening the trip or increasing the budget before generating a full itinerary.`;
@@ -1489,11 +2071,16 @@ function renderResults() {
     document.getElementById("budget-progress-fill").style.width = "0%";
     document.getElementById("budget-status").textContent = "Build a trip to see budget status";
     document.getElementById("budget-status").className = "budget-status";
-    document.getElementById("budget-explanation").textContent = advice
+    document.getElementById("budget-explanation").textContent = isLoading
+      ? "Your dynamic itinerary will appear here as soon as generation is complete."
+      : advice
       ? "Adjust the trip length or budget, then build again to generate a full itinerary."
       : "Nomad will explain how the itinerary uses your budget after generation.";
     document.getElementById("generation-notice").hidden = true;
     document.getElementById("generation-notice").textContent = "";
+    if (!isLoading) {
+      setSaveTripMessage("");
+    }
     return;
   }
 
@@ -1511,6 +2098,7 @@ function resetPlanner() {
   document.getElementById("trip-form").reset();
   appState.currentTrip = null;
   appState.feasibilityAdvice = null;
+  appState.loadingTrip = false;
   renderResults();
   setFormMessage("Planner reset. Enter destination, dates, arrival time, departure time, and budget to build a new trip.");
   scrollToSection("planner");
@@ -1557,7 +2145,7 @@ function setupNavigation() {
   appSections.forEach((section) => observer.observe(section));
 }
 
-function handleTripSubmit(event) {
+async function handleTripSubmit(event) {
   event.preventDefault();
   const validationError = validateForm();
   if (validationError) {
@@ -1566,7 +2154,14 @@ function handleTripSubmit(event) {
   }
 
   try {
+    appState.currentTrip = null;
+    appState.feasibilityAdvice = null;
+    appState.loadingTrip = true;
+    renderResults();
+    scrollToSection("results");
+    await new Promise((resolve) => window.setTimeout(resolve, 550));
     buildTripFromForm();
+    appState.loadingTrip = false;
     if (appState.feasibilityAdvice) {
       renderResults();
       scrollToSection("results");
@@ -1582,6 +2177,7 @@ function handleTripSubmit(event) {
     renderResults();
     scrollToSection("results");
   } catch (error) {
+    appState.loadingTrip = false;
     appState.currentTrip = null;
     renderResults();
     setFormMessage("There was an issue with the time window calculation. Please try again; if the issue persists, adjust the dates or times slightly.", "error");
@@ -1622,8 +2218,12 @@ tripForm.addEventListener("submit", handleTripSubmit);
 if (contactForm) {
   contactForm.addEventListener("submit", handleContactSubmit);
 }
+if (authForm) {
+  authForm.addEventListener("submit", handleAuthSubmit);
+}
 resetButton.addEventListener("click", resetPlanner);
 goToBuilderButton.addEventListener("click", () => scrollToSection("planner"));
+saveTripButton?.addEventListener("click", saveCurrentTrip);
 downloadPdfButton.addEventListener("click", () => {
   if (!appState.currentTrip) {
     scrollToSection("planner");
@@ -1633,8 +2233,29 @@ downloadPdfButton.addEventListener("click", () => {
 
   window.print();
 });
+openLoginButton?.addEventListener("click", () => openAuthModal("login"));
+openSignupButton?.addEventListener("click", () => openAuthModal("signup"));
+logoutButton?.addEventListener("click", handleLogOut);
+authSwitchButton?.addEventListener("click", () => {
+  setAuthMode(appState.authMode === "signup" ? "login" : "signup");
+});
+closeAuthButton?.addEventListener("click", closeAuthModal);
+authBackdrop?.addEventListener("click", closeAuthModal);
+savedTripsList?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-load-trip]");
+  if (!button) return;
+  loadSavedTripIntoResults(button.dataset.loadTrip);
+});
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && authModal && !authModal.hidden) {
+    closeAuthModal();
+  }
+});
 
 renderResults();
+renderSavedTrips();
 setupNavigation();
 setActiveSection("planner");
 setFormMessage("Start with destination, dates, arrival time, departure time, and budget, then click Build My Trip.");
+renderAuthUI();
+initializeSupabaseAuth();

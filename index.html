@@ -17,10 +17,25 @@
           <span class="brand-mark">N</span>
           <span class="brand-text">Nomad</span>
         </a>
-        <div class="nav-links">
-          <a href="#planner" data-nav-link="planner">Plan Trip</a>
-          <a href="#results" data-nav-link="results">Results</a>
-          <a href="#contact" data-nav-link="contact">Contact</a>
+        <div class="nav-meta">
+          <div class="nav-links">
+            <a href="#planner" data-nav-link="planner">Plan Trip</a>
+            <a href="#results" data-nav-link="results">Results</a>
+            <a href="#my-trips" data-nav-link="my-trips">My Trips</a>
+            <a href="#contact" data-nav-link="contact">Contact</a>
+          </div>
+          <div class="auth-nav">
+            <div class="account-status" id="account-status" aria-live="polite">
+              <span class="account-status-dot" aria-hidden="true"></span>
+              <div class="account-status-copy">
+                <strong id="account-status-title">Signed out</strong>
+                <span id="account-status-detail">Use email to create or access your account.</span>
+              </div>
+            </div>
+            <button type="button" id="open-login-button" class="secondary-button nav-auth-button">Log In</button>
+            <button type="button" id="open-signup-button" class="primary-button nav-auth-button">Sign Up</button>
+            <button type="button" id="logout-button" class="secondary-button nav-auth-button" hidden>Log Out</button>
+          </div>
         </div>
       </nav>
     </header>
@@ -113,9 +128,11 @@
           <p id="results-subtitle" class="section-note"></p>
           </div>
           <div class="export-toolbar no-print">
+            <button type="button" id="save-trip-button" class="primary-button toolbar-button">Save Trip</button>
             <button type="button" id="download-pdf-button" class="secondary-button toolbar-button">Export Itinerary as PDF</button>
           </div>
         </div>
+        <div id="save-trip-message" class="form-message no-print" aria-live="polite"></div>
 
         <div id="results-empty-state" class="results-empty-state">
           <div class="empty-state-box">
@@ -217,6 +234,18 @@
             </aside>
           </div>
         </div>
+      </section>
+
+      <section class="saved-trips-section app-section no-print" id="my-trips" data-section="my-trips">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">My Trips</p>
+            <h2>Your saved Nomad plans</h2>
+          </div>
+          <p id="saved-trips-note" class="section-note">Log in to save trip plans to your account and reopen them later.</p>
+        </div>
+        <div id="saved-trips-message" class="form-message" aria-live="polite"></div>
+        <div id="saved-trips-list" class="saved-trips-list"></div>
       </section>
 
       <section class="about-section app-section no-print" id="about" data-section="about">
@@ -344,11 +373,40 @@
       <div class="footer-links">
         <a href="#planner" data-nav-link="planner">Plan Trip</a>
         <a href="#results" data-nav-link="results">Results</a>
+        <a href="#my-trips" data-nav-link="my-trips">My Trips</a>
         <a href="#contact" data-nav-link="contact">Contact</a>
       </div>
     </footer>
   </div>
 
+  <div id="auth-modal" class="auth-modal" hidden>
+    <div class="auth-modal-backdrop" data-auth-close></div>
+    <section class="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-dialog-title">
+      <button type="button" id="close-auth-button" class="auth-close-button" aria-label="Close account dialog">Close</button>
+      <p class="eyebrow">Account</p>
+      <h2 id="auth-dialog-title">Log in to Nomad</h2>
+      <p id="auth-dialog-copy" class="section-note">Use your email and password to save your place in the Nomad experience.</p>
+
+      <form id="auth-form" class="auth-form" novalidate>
+        <label>
+          <span>Email</span>
+          <input id="auth-email-input" name="auth-email" type="email" placeholder="wvp5131@psu.edu" autocomplete="email">
+        </label>
+        <label>
+          <span>Password</span>
+          <input id="auth-password-input" name="auth-password" type="password" placeholder="At least 6 characters" autocomplete="current-password">
+        </label>
+        <div id="auth-form-message" class="form-message" aria-live="polite"></div>
+        <div class="form-actions auth-form-actions">
+          <button type="submit" id="auth-submit-button" class="primary-button">Log In</button>
+          <button type="button" id="auth-switch-button" class="secondary-button">Need an account? Sign Up</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <script src="main.js"></script>
 </body>
 </html>
